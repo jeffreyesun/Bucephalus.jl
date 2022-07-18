@@ -2,5 +2,5 @@ using Bucephalus
 using Test
 
 @testset "Bucephalus.jl" begin
-    # Write your tests here.
+    @test Int(st_param) == -1
 end
