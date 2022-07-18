@@ -82,4 +82,4 @@ addPayoffRule!(hh, inputs=c, f=identity)
 ε = addShockVariable!(hh, Float64, :ε; dist=Normal(0,0.05))
 
 # Transition
-@macroexpand @transition l(l,ε,η,ν) = exp(ν*log(l) + η + ε)
+@transition l(l,ε,η,ν) = exp(ν*log(l) + η + ε)

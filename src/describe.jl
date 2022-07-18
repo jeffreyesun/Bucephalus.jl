@@ -244,11 +244,11 @@ end
 
 
 macro parameter(ex)
-    host = ex.args[1].args[1]
+    hostname = ex.args[1].args[1]
     varquotsymb = ex.args[1].args[2]
     varname = eval(varquotsymb)
     val = ex.args[2]
-    return esc(:($varname = addParameter!($host, $varquotsymb, $val)))
+    return esc(:($varname = addParameter!($hostname, $varquotsymb, $val)))
 end
 
 macro statevar(ex)
@@ -258,11 +258,11 @@ macro statevar(ex)
     else
         dtype = Float64
     end
-    host = ex.args[1].args[1]
+    hostname = ex.args[1].args[1]
     varquotsymb = ex.args[1].args[2]
     varname = eval(varquotsymb)
     init = ex.args[2]
-    return esc(:($varname = addStateVariable!($host, $dtype, $varquotsymb; init=$init)))
+    return esc(:($varname = addStateVariable!($hostname, $dtype, $varquotsymb; init=$init)))
 end
 
 macro matchvar(ex)
@@ -272,11 +272,11 @@ macro matchvar(ex)
     else
         error("Must specify Match type")
     end
-    host = ex.args[1].args[1]
+    hostname = ex.args[1].args[1]
     varquotsymb = ex.args[1].args[2]
     varname = eval(varquotsymb)
     init = ex.args[2]
-    return esc(:($varname = addMatchVariable!($host, $dtype, st_state, $varquotsymb; init=$init)))
+    return esc(:($varname = addMatchVariable!($hostname, $dtype, st_state, $varquotsymb; init=$init)))
 end
 
 function input2varname(input)
@@ -285,7 +285,7 @@ function input2varname(input)
     error("Inputs must be Inputtables")
 end
 
-function macro_addrule(host, ex, varname)
+function macro_addrule(hostname, ex, varname)
     #TODO Escape symbols individually for hygeine
     fname = Symbol("f_", varname)
     ex_f = copy(ex)
@@ -294,19 +294,19 @@ function macro_addrule(host, ex, varname)
     ex_f = esc(ex_f)
     
     inputs = :([$(ex.args[1].args[2:end]...)])
-    ex_addrule = esc(:(addRule!($host, inputs=$inputs, outputs=$varname, f=$fname)))
+    ex_addrule = esc(:(addRule!($hostname, inputs=$inputs, outputs=$varname, f=$fname)))
 
     return ex_f, ex_addrule, esc(varname)
 end
 
 function macro_depvar(ex, stage)
-    host = ex.args[1].args[1].args[1]
+    hostname = ex.args[1].args[1].args[1]
     varname = eval(ex.args[1].args[1].args[2])
     ex.args[1].args[1] = varname
     
-    ex_newvar = esc(:($varname = addDependentVariable!($host, Float64, $(Meta.quot(varname)); stage=$stage)))
+    ex_newvar = esc(:($varname = addDependentVariable!($hostname, Float64, $(Meta.quot(varname)); stage=$stage)))
 
-    exs_addrule = macro_addrule(host, ex, varname)
+    exs_addrule = macro_addrule(hostname, ex, varname)
     return Expr(:block, ex_newvar, exs_addrule...)
 end
 
@@ -328,10 +328,10 @@ end
 
 macro transition(ex)
     varname = ex.args[1].args[1]
-    host = esc(:(host($varname)))
+    hostname = :(Bucephalus.host($varname))
     ex.args[1].args[1] = varname
 
-    exs_addrule = macro_addrule(host, ex, varname)
+    exs_addrule = macro_addrule(hostname, ex, varname)
     return Expr(:block, exs_addrule...)
 end
 
