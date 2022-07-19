@@ -1,18 +1,22 @@
 module Bucephalus
 
+###########
+# Exports #
+###########
 export @parameter, @statevar, @matchvar, @statedep, @equildep, @choicedep, @choicedep, @equilibriumcondition, @utility!, @shock, @transition
+export @agent
 export Model, compile, iterate!, solve
 export addParameter!, addStateVariable!, addMatchVariable!, addEquilibriumVariable!, addChoiceVariable!, addShockVariable!, addDependentVariable!, addRule!
 export By, ByMembers
-
 export Bounds, Match # maybe
 export addAgent!, addMarket!
-
 # Exports to eventually remove (maybe)
 export EnumSampler, makeChoiceVariable!, addEquilbriumConditions!, addfactor!, addPayoffRule!, addShockVariable!
 export st_param, st_state, st_statedep, st_equil, st_equildep, st_choice, st_choicedep, st_shock, st_shockdep, st_nextstate
 
-
+###########
+# Imports #
+###########
 using ForwardDiff
 using Distributions
 using NLsolve
@@ -25,6 +29,9 @@ using StatsBase
 import Random: rand, rand!
 import Base: zero, zeros
 
+###############
+# Source Code #
+###############
 include("types.jl")
 include("bounds.jl")
 include("model_description.jl")

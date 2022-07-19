@@ -251,6 +251,14 @@ macro parameter(ex)
     return esc(:($varname = addParameter!($hostname, $varquotsymb, $val)))
 end
 
+macro agent(ex, kwargs...)
+    modelquot = esc(ex.args[1])
+    agentsymb = ex.args[2]
+    params = Expr(:parameters, [Expr(:kw, kw.args[1], esc(kw.args[2])) for kw in kwargs]...)
+
+    return Expr(:call, :addAgent!, params, modelquot, agentsymb)
+end
+
 macro statevar(ex)
     if ex.args[1].head == :(::)
         dtype = ex.args[1].args[2]
@@ -260,7 +268,7 @@ macro statevar(ex)
     end
     hostname = ex.args[1].args[1]
     varquotsymb = ex.args[1].args[2]
-    varname = eval(varquotsymb)
+    varname = eval(varquotsymb) # What?
     init = ex.args[2]
     return esc(:($varname = addStateVariable!($hostname, $dtype, $varquotsymb; init=$init)))
 end
