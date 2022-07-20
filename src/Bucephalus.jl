@@ -3,8 +3,8 @@ module Bucephalus
 ###########
 # Exports #
 ###########
-export @parameter, @statevar, @matchvar, @statedep, @equildep, @choicedep, @choicedep, @equilibriumcondition, @utility!, @shock, @transition
-export @agent
+export @parameter, @statevar, @matchvar, @choicevar, @choicevar!, @statedep, @equilvar, @equildep, @choicedep, @choicedep, @equilibriumcondition, @utility!, @shock, @transition
+export @agent, @utility, @segmentation
 export Model, compile, iterate!, solve
 export addParameter!, addStateVariable!, addMatchVariable!, addEquilibriumVariable!, addChoiceVariable!, addShockVariable!, addDependentVariable!, addRule!
 export By, ByMembers

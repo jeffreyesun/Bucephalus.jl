@@ -108,8 +108,9 @@ function addEquilibriumVariable!(h::Host, dtype::DataType, symbol::Symbol=Symbol
 end
 
 "Add a (continuous) choice variable to the model."
-function addChoiceVariable!(h::Host, dtype::DataType, symbol::Symbol=Symbol(""); init, bounds::Bounds=Bounds())
+function addChoiceVariable!(h::Host, dtype::DataType, symbol::Symbol=Symbol(""); init=zero(dtype), bounds::Union{Bounds,Tuple}=Bounds())
     @assert dtype == Float64
+    isa(bounds, Tuple) && (bounds = Bounds(bounds...))
     symbol = _varsymbol(h, symbol)
     init = processinit(h, dtype, init)
     var = ChoiceVariable{dtype}(h, symbol, bounds, init, false)
@@ -255,8 +256,16 @@ macro agent(ex, kwargs...)
     modelquot = esc(ex.args[1])
     agentsymb = ex.args[2]
     params = Expr(:parameters, [Expr(:kw, kw.args[1], esc(kw.args[2])) for kw in kwargs]...)
+    call = Expr(:call, :addAgent!, params, modelquot, agentsymb)
+    return :($(esc(eval(agentsymb))) = $call)
+end
 
-    return Expr(:call, :addAgent!, params, modelquot, agentsymb)
+macro segmentation(ex, kwargs...)
+    modelquot = esc(ex.args[1])
+    segsymb = ex.args[2]
+    params = Expr(:parameters, [Expr(:kw, kw.args[1], esc(kw.args[2])) for kw in kwargs]...)
+    call = Expr(:call, :addMarket!, params, modelquot, segsymb)
+    return :($(esc(eval(segsymb))) = $call)
 end
 
 macro statevar(ex)
@@ -285,6 +294,34 @@ macro matchvar(ex)
     varname = eval(varquotsymb)
     init = ex.args[2]
     return esc(:($varname = addMatchVariable!($hostname, $dtype, st_state, $varquotsymb; init=$init)))
+end
+
+macro equilvar(ex)
+    if ex.args[1].head == :(::)
+        dtype = esc(ex.args[1].args[2])
+        ex.args[1] = ex.args[1].args[1]
+    else
+        dtype = Float64
+    end
+    hostname = esc(ex.args[1].args[1])
+    varquotsymb = ex.args[1].args[2]
+    varname = eval(varquotsymb) # What?
+    init = ex.args[2]
+    return :($(esc(varname)) = addEquilibriumVariable!($hostname, $dtype, $varquotsymb; init=$init))
+end
+
+macro choicevar(ex, type, kwargs...)
+    modelquot = esc(ex.args[1])
+    varsymb = ex.args[2]
+    params = Expr(:parameters, [Expr(:kw, kw.args[1], esc(kw.args[2])) for kw in kwargs]...)
+    call = Expr(:call, :addChoiceVariable!, params, modelquot, esc(type), varsymb)
+    return :($(esc(eval(varsymb))) = $call)
+end
+
+macro choicevar!(ex)
+    hostquot = esc(ex.args[1])
+    varquot = esc(eval(ex.args[2]))
+    return :(makeChoiceVariable!($hostquot, $varquot))
 end
 
 function input2varname(input)
@@ -332,6 +369,39 @@ end
 
 macro shockdep(ex)
     return macro_depvar(ex, :st_shockdep)
+end
+
+macro equilibriumcondition(ex)
+    modelquot = ex.args[1].args[1].args[1]
+    varquot = eval(ex.args[1].args[1].args[2])
+    res1 = macro_depvar(ex, :st_choicedep)
+    return quote
+        $res1
+        addEquilbriumConditions!($(esc(modelquot)), [$(esc(varquot))])
+    end
+end
+
+macro utility(ex)
+    hostname = ex.args[1].args[1].args[1]
+    varname = eval(ex.args[1].args[1].args[2])
+    return quote
+        $(macro_depvar(ex, :st_choicedep))
+        addPayoffRule!($(esc(hostname)), inputs=$(esc(varname)), f=identity)
+    end
+end
+
+macro utility!(ex)
+    hostname = ex.args[1]
+    varname = eval(ex.args[2])
+    return :(addPayoffRule!($(esc(hostname)), inputs=$(esc(varname)), f=identity))
+end
+
+macro shock(ex)
+    hostquot = ex.args[1].args[1]
+    varsymb = ex.args[1].args[2]
+    dist = ex.args[2]
+    #TODO make sure addShockVariable not escaped
+    return :($(esc(eval(varsymb))) = addShockVariable!($(esc(hostquot)), Float64, $(esc(varsymb)); dist = $(esc(dist))))
 end
 
 macro transition(ex)
