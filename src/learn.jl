@@ -439,7 +439,7 @@ function burn_in_V(md::ModelData)
 end
 
 "Run model, learning continuously."
-function run_model(md::ModelData)
+function train(md::ModelData)
     P_losses = Float64[]
     dsA = dualschema(md, :A)
     dsB = dualschema(md, :B)
@@ -476,4 +476,3 @@ function run_model(md::ModelData)
     end
     return P_losses
 end
-

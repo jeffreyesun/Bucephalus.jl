@@ -101,8 +101,8 @@ BoundableVariable = Union{ChoiceVariable,EquilibriumVariable} #TODO Holy Trait?
 
 function from_R(md::ModelData, var::BoundableVariable, x; ds::Schema=nothing)
     b = bounds(var)
-    lowerval = boundvalue(md, lowerbound(b), ds)
-    upperval = boundvalue(md, upperbound(b), ds)
+    lowerval = boundvalue(md, lowerbound(b), Try(ds))
+    upperval = boundvalue(md, upperbound(b), Try(ds))
     return from_R.(x, lowerval, upperval)
 end
 
