@@ -196,8 +196,8 @@ getpayoffval(ad::AgentData; ds::Schema=nothing) = getval(ad, payoffvar(agent(ad)
 #-------------------#
 
 "Given a Match StateVariable on an agent, fill in the corresponding members vectors on the partner."
-function updatemembers!(md::ModelData, var::StateVariable{<:Match})
-    matchval = getval(md, var; usefuturestate=true)
+function updatemembers!(md::ModelData, var::StateVariable{<:Match}; usefuturestate::Bool)
+    matchval = getval(md, var; usefuturestate)
     partner = partnerhost(model(md), var)
 
     # Build new membersdata
@@ -211,9 +211,9 @@ function updatemembers!(md::ModelData, var::StateVariable{<:Match})
     return nothing
 end
 
-function updatemembers!(md::ModelData)
+function updatemembers!(md::ModelData; usefuturestate::Bool=false)
     for var in allvars(model(md), st_state) if dtype(var) <: Match
-        updatemembers!(md, var)
+        updatemembers!(md, var; usefuturestate)
     end end
 end
 

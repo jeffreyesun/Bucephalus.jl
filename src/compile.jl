@@ -127,7 +127,7 @@ function compile(m::Model; dualschemas=dualschemasAB(m), brains=basicbrains(m))
     adddualschemas!(md, dualschemas)
     preallocate!(md)
     initialize!(md)
-    updatemembers!(md)
+    updatemembers!(md; usefuturestate=true)
     compilerules!(md)
     return md
 end
