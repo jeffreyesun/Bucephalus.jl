@@ -22,6 +22,8 @@ This package is designed to solve heterogenous-agent macroeconomic models, with 
 
 In these models, many agents interact in an environment in which each agent has an individual state (e.g. wealth), and the environment also may have some state variables common to all agents (e.g. total factor productivity). Agents make choices each period to maximize the net present value of present and future period utilities (called the "return" in RL), given their individual state. Stochasticity takes the form of random variables drawn each period which are taken as inputs to the transition function.
 
+One key detail is that, in this framework, agents are assumed to be either "representative" or "small", in that they do not internalize their individual effects on aggregate quantities (see roadmap).
+
 ## Framework
 
 Bucephalus has two components
@@ -57,6 +59,10 @@ In general, each variable has the following components:
 The general syntax looks like this:
 
 `@vartype host.var(inputvar1, inputvar2) = f_var(inputvar1,inputvar2)`
+
+When an input variable `inputvar` has `host` as its host, the function will implicitly take only the individual value of `inputvar` as its input. To take the whole vector of values as input, use `Ref(inputvar)`:
+
+`@statedep hh.meanpeerwealth(Ref(wealth)) = mean(wealth)`
 
 This will differ somewhat by stage. For example, choice variables will not have an associated function or distribution, because they are implicitly taken from the policy function.
 
@@ -98,5 +104,13 @@ Note: A performance improvement can be obtained by specifying in the model that 
 This algorithm has many limitations:
 1. The algorithm may not perform well in the presence of strong non-convexities in the value function. Because the policy function network parameters are updated using gradient descent, it is quite possible for it to become stuck at local minima.
 2. When the steady state of the model is non-ergodic, the algorithm may fail to cover the state space well. That is, because the steady state is traversed simply by simulating the model forward, the algorithm will fail to cover the steady state space when the steady state exhibits path-dependence. In future, I will try to remedy this by providing the option to begin the simulation at various starting points and simulating in parallel, or by periodically restarting the simulation from a new random initial state.
+3. Currently, the inputs to the policy function must be specified manually, and performance is poor when the entire state space is used. This will be unnecessary after implementing the "generalized moments" of [DeepHAM](https://arxiv.org/pdf/2112.14377.pdf).
 
 ## Roadmap
+
+1. Replace large parts of the hand-coded backend with existing packages. This should be a great improvement to the package, in addition to significantly reducing the size of its source code.
+2. Implement the generalized moments of [DeepHAM](https://arxiv.org/pdf/2112.14377.pdf). In the case of segmentations, implement nested generalized moments, where one set of generalized moments is computed for each segmentation, and another set is computed using the vector of generalized moments for each segmentation as its input.
+3. Implement other solvers and learning algorithms, including the brute-force solver.
+4. Find robust strategies to draw starting states for learning episodes. Allow the user to configure the method used.
+5. Implement methods to test the optimality of policy networks, such as Euler equation errors.
+6. Allow agents to internalize their effect on aggregate quantities. This is necessary, e.g., for models of monopolistic competition.
