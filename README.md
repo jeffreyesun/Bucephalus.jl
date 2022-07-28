@@ -1,7 +1,3 @@
----
-header-includes:
-  - \usepackage[ruled,vlined,linesnumbered]{algorithm2e}
----
 
 # Bucephalus.jl
 
