@@ -11,6 +11,7 @@ export By, ByMembers
 export getval, train
 export Bounds, Match # maybe
 export addAgent!, addMarket!
+export partnerhost
 # Exports to eventually remove (maybe)
 export EnumSampler, makeChoiceVariable!, addEquilbriumConditions!, addfactor!, addPayoffRule!, addShockVariable!
 export st_param, st_state, st_statedep, st_equil, st_equildep, st_choice, st_choicedep, st_shock, st_shockdep, st_nextstate
