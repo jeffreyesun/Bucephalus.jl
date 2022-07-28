@@ -17,6 +17,7 @@ import ForwardDiff
 ############################
 
 #=
+"Train policy network to produce given initial choice values given initial state."
 function pretrain(md::ModelData, a::Agent, P_nn::PNet)
     initmat = hcat[init(var) for var in outputs(nn)]
     #TODO Need to make sure init values vary w/r/t inputs
@@ -334,10 +335,6 @@ end
 function sgd_update_samplebatch!(
     md::ModelData, a::Agent, batch_size::Int=10, sample_length::Int=5, _V_nn=V_nn(md, a), _P_nn=P_nn(md, a); lr=0.1
 )
-    V_loss = mean(loss_V(md, a))
-    P_loss = mean(loss_P(md, a; ds=nothing))
-    @show V_loss
-    @show P_loss
     dsA = dualschema(md, :A)
     ad = hostdata(md, a)
     _β = β(brain(ad))
@@ -359,7 +356,7 @@ function sgd_update_samplebatch!(
         end
         # Add future V to sample value
         βV1mean .+= _β^sample_length.*run_NN(md, a, _V_nn; usefuturestate=true, prealloc=false)
-        restorecheckpoint!(md)
+        draw < batch_size && restorecheckpoint!(md)
         iterate!(md, false) #TODO Restore all vars for 1/sample_length speedup
     end
     # Update policy function parameters
@@ -403,31 +400,28 @@ end
 ##################
 
 "Get to equilibrium given initial V_nn and P_nn"
-function burn_in(md::ModelData)
+function burn_in(md::ModelData; T_burn=1000)
     # Burn-in for k
     means = Float64[]
 
-    hhd = agentdata(md, :hh)
-    for t=1:100
-        println("\rn=$t")
+    println("Burning in...")
+    for t=1:T_burn
+        print("\rt=$t")
         iterate!(md)
-        push!(means, mean(getval(md, :k)))
     end
-    return means
 end
 
-"Get to equilibrium given initial P_nn, updating V_nn"
-function burn_in_V(md::ModelData)
+"Train value function, given initial policy."
+function train_V(md::ModelData; T_trainV=1000)
     means = Float64[]
     V_losses = Float64[]
-    dynamicagent = only(filter(isdynamic, allagents(m)))
 
-    for t=1:100
+    println("Training V...")
+    for t=1:T_trainV
         local Vloss
         for h=1:20
-            #iterate!(md)
-            Vloss = sgdupdate_V!(hhd)
-            push!(means, mean(getval(md, :k)))
+            iterate!(md)
+            Vloss = sgdupdate_V!(md)
             push!(V_losses, Vloss)
             print("\rt=$t, Vloss=$Vloss")
         end
@@ -438,14 +432,29 @@ function burn_in_V(md::ModelData)
     return means, V_losses
 end
 
+"Train policy function while updating value function and simulating forward."
+function train_PV(md::ModelData; T_trainPV=Inf)
+    dynamicagent = only(filter(isdynamic, agents(model(m))))
+
+    println("Training P and V...")
+    for t = 1:T_trainPV
+        sgd_update_samplebatch!(md, dynamicagent)
+    end
+end
+
 "Run model, learning continuously."
-function train(md::ModelData)
+function train(md::ModelData; T_burn=1000, T_trainV=1000, T_trainPV=Inf)
+    burn_in(md; T_burn)
+    train_V(md; T_trainV)
+    train_PV(md; T_trainPV)
+    
+    #=
     P_losses = Float64[]
     dsA = dualschema(md, :A)
     dsB = dualschema(md, :B)
-
+    
     Ploss = 0.0
-    for generation = 1:100
+    for episode = 1:100
         local Vloss
         for i=1:5 iterate!(md) end
         for ii=1:10
@@ -454,7 +463,7 @@ function train(md::ModelData)
                 push!(means, mean(getval(md, :k)))
                 push!(V_losses, Vloss)
                 rval = getval(md, :r)
-                print("\rgeneration=$generation, ii=$ii, Vloss=$Vloss, Ploss=$Ploss, r=$rval")
+                print("\repisode=$episode, ii=$ii, Vloss=$Vloss, Ploss=$Ploss, r=$rval")
             end
             for i=1:50
                 solve_equilibrium!(md)
@@ -468,11 +477,17 @@ function train(md::ModelData)
                 Ploss = sgdupdate_P!(md, :hh; lr=.1)
                 push!(P_losses, Ploss)
                 rval = float.(getval(md, :r; ds=dsB))
-                print("\rgeneration=$generation, ii=$ii, Vloss=$Vloss, Ploss=$Ploss, r=$rval")
+                print("\repisode=$episode, ii=$ii, Vloss=$Vloss, Ploss=$Ploss, r=$rval")
             end
-            println("\rgeneration=$generation, ii=$ii, Vloss=$Vloss, Ploss=$Ploss, r=$rval")
+            println("\repisode=$episode, ii=$ii, Vloss=$Vloss, Ploss=$Ploss, r=$rval")
         end
         rval = getval(md, :r)
     end
     return P_losses
+    =#
+end
+
+function train(m::Model; T_burn=1000, T_trainV=1000, T_trainPV=Inf)
+    md = compile(m)
+    train(md; T_burn, T_trainV, T_trainPV)
 end

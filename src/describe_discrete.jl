@@ -43,7 +43,12 @@ function addSelectionRule!(a::Agent, discretevar::AbstractVariable{S,<:Match}, u
 end
 =#
 
-"Allow Agent `a` to choose `discretevar` as a choice variable."
+"
+Allow Agent `a` to choose `discretevar` as a choice variable.
+This is achieved by generating a set of choice probability variables, which are
+continuous and chosen by the agent.
+This may not be the right approach to mixed continuous and discrete actions.
+"
 function makeChoiceVariable!(a::Agent, discretevar::AbstractVariable{S,<:Union{Enum,Match}}) where {S}
     _symbol = symbol(discretevar)
 
