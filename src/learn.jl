@@ -187,9 +187,12 @@ end
 
 "Update V for all dynamic agents"
 function sgdupdate_V!(md::ModelData)
+    losses = Float64[]
     for a in agents(model(md)) if isdynamic(a)
-        sgdupdate_V!(md, a)
+        loss = sgdupdate_V!(md, a)
+        push!(losses, loss)
     end end
+    return only(losses)
 end
 
 # One Period, Many Draws, Optimization Style #
@@ -434,11 +437,13 @@ end
 
 "Train policy function while updating value function and simulating forward."
 function train_PV(md::ModelData; T_trainPV=Inf)
-    dynamicagent = only(filter(isdynamic, agents(model(m))))
+    dynamicagent = only(filter(isdynamic, agents(model(md))))
 
     println("Training P and V...")
-    for t = 1:T_trainPV
+    t = 0
+    while t < T_trainPV
         sgd_update_samplebatch!(md, dynamicagent)
+        t += 1
     end
 end
 
